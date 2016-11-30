@@ -16,7 +16,7 @@ Usage
 ```
 $ ed ~/.xinitrc
 1i
-$GOPATH/bin/urc
+$GOPATH/bin/urc &
 .
 w
 q
