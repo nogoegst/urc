@@ -99,17 +99,22 @@ func updateStatus(statusChan chan<- string) {
 
 }
 
+func setStatus(x *xgb.Conn, status string) {
+	root := xproto.Setup(x).DefaultScreen(x).Root
+	xproto.ChangeProperty(x, xproto.PropModeReplace, root, xproto.AtomWmName, xproto.AtomString, 8, uint32(len(status)), []byte(status))
+}
+
 func main() {
 	x, err := xgb.NewConn()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer x.Close()
 
-	root := xproto.Setup(x).DefaultScreen(x).Root
+	defer setStatus(x, "urc died (-__-,) ")
 	statusChan := make(chan string)
 	go updateStatus(statusChan)
 	for status := range statusChan {
-		xproto.ChangeProperty(x, xproto.PropModeReplace, root, xproto.AtomWmName,
-			xproto.AtomString, 8, uint32(len(status)), []byte(status))
+		setStatus(x, status)
 	}
 }
