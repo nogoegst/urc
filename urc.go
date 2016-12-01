@@ -73,8 +73,8 @@ func timeCheck(timeCh chan<- time.Time) {
 	duration := time.Second
 	ticker := time.NewTicker(duration)
 	for {
-		<-ticker.C
 		timeCh <- time.Now()
+		<-ticker.C
 	}
 }
 
