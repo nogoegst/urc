@@ -69,21 +69,28 @@ func livenessCheck(livenessCh chan<- string) {
 	}
 }
 
+func timeCheck(timeCh chan<- time.Time) {
+	duration := time.Second
+	ticker := time.NewTicker(duration)
+	for {
+		<-ticker.C
+		timeCh <- time.Now()
+	}
+}
+
 func updateStatus(statusChan chan<- string) {
 	var status Status
 
-	// Update time
-	duration := time.Second
-	ticker := time.NewTicker(duration)
-
+	timeCh := make(chan time.Time)
+	go timeCheck(timeCh)
 
 	livenessCh := make(chan string)
 	go livenessCheck(livenessCh)
 
 	for {
 		select {
-		case <-ticker.C:
-			status.Time = time.Now()
+		case time := <-timeCh:
+			status.Time = time
 		case liveness := <-livenessCh:
 			status.TorLiveness = liveness
 		}
