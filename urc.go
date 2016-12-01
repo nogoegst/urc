@@ -10,6 +10,8 @@ package main
 import (
 	"log"
 	"fmt"
+	"net"
+	"os"
 	"time"
 	"strings"
 
@@ -20,16 +22,47 @@ import (
 
 const timeLayout = "Mon 02.01 15:04:05"
 const torReconnectDelay = 5 * time.Second
+const messageTTL = 5 * time.Minute
 
 type Status struct {
-	Time	time.Time
+	Time		time.Time
 	TorLiveness	string
+	Message		string
 }
 
 func (s *Status) Format() (string) {
+	fMsg := strings.TrimRight(s.Message, "\n\r")
 	fTorLiveness := strings.ToLower(s.TorLiveness)
 	fTime := s.Time.Format(timeLayout)
-	return fmt.Sprintf("Λ > 0 | tor is %s | %s ", fTorLiveness, fTime)
+	return fmt.Sprintf("%s | Λ > 0 | tor is %s | %s ", fMsg, fTorLiveness, fTime)
+}
+
+func messageCheck(messageCh chan<- string) {
+	sockpath := os.Getenv("HOME")+"/urc.sock"
+	os.Remove(sockpath)
+	l, err := net.Listen("unix", sockpath)
+	if err != nil {
+		log.Printf("Unable to listen on socket: %v", err)
+		close(messageCh)
+		return
+	}
+	defer os.Remove(sockpath)
+
+	for {
+		c, err := l.Accept()
+		if err != nil {
+			log.Printf("Unable to accept connection: %v", err)
+			continue
+		}
+		buf := make([]byte, 255)
+		n, err := c.Read(buf)
+		if err != nil {
+			log.Printf("Unable to read from connection: %v", err)
+			continue
+		}
+		c.Close()
+		messageCh <- string(buf[:n])
+	}
 }
 
 func livenessCheck(livenessCh chan<- string) {
@@ -87,12 +120,21 @@ func updateStatus(statusChan chan<- string) {
 	livenessCh := make(chan string)
 	go livenessCheck(livenessCh)
 
+	messageCh := make(chan string)
+	go messageCheck(messageCh)
+	messageTimer := time.NewTimer(time.Duration(0))
+
 	for {
 		select {
 		case time := <-timeCh:
 			status.Time = time
 		case liveness := <-livenessCh:
 			status.TorLiveness = liveness
+		case msg := <-messageCh:
+			status.Message = msg
+			messageTimer.Reset(messageTTL)
+		case <-messageTimer.C:
+			status.Message = ""
 		}
 		statusChan <- status.Format()
 	}
