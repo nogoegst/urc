@@ -23,6 +23,7 @@ import (
 const timeLayout = "Mon 02.01 15:04:05"
 const torReconnectDelay = 5 * time.Second
 const messageTTL = 5 * time.Minute
+const maxMsgLength = 64
 
 type Status struct {
 	Time		time.Time
@@ -32,6 +33,9 @@ type Status struct {
 
 func (s *Status) Format() (string) {
 	fMsg := strings.TrimRight(s.Message, "\n\r")
+	if len(fMsg) > maxMsgLength {
+		fMsg = fMsg[:maxMsgLength] + "[...]"
+	}
 	fTorLiveness := strings.ToLower(s.TorLiveness)
 	fTime := s.Time.Format(timeLayout)
 	return fmt.Sprintf("%s | Λ > 0 | tor is %s | %s ", fMsg, fTorLiveness, fTime)
