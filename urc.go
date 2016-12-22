@@ -22,19 +22,23 @@ import (
 
 const timeLayout = "Mon 02.01 15:04:05"
 const torReconnectDelay = 5 * time.Second
-const messageTTL = 5 * time.Minute
+const messageTTL = 30 * time.Minute
 const maxMsgLength = 64
 
 type Status struct {
 	Time		time.Time
 	TorLiveness	string
 	Message		string
+	MessageTimestamp	time.Time
 }
 
 func (s *Status) Format() (string) {
 	fMsg := strings.TrimRight(s.Message, "\n\r")
 	if len(fMsg) > maxMsgLength {
 		fMsg = fMsg[:maxMsgLength] + "[...]"
+	}
+	if fMsg != "" {
+		fMsg += fmt.Sprintf(" %dm", int(time.Since(s.MessageTimestamp).Minutes()))
 	}
 	fTorLiveness := strings.ToLower(s.TorLiveness)
 	fTime := s.Time.Format(timeLayout)
@@ -127,6 +131,8 @@ func updateStatus(statusChan chan<- string) {
 	messageCh := make(chan string)
 	go messageCheck(messageCh)
 	messageTimer := time.NewTimer(time.Duration(0))
+	messageTicker := time.NewTicker(time.Minute)
+	messageTicker.Stop()
 
 	for {
 		select {
@@ -135,10 +141,15 @@ func updateStatus(statusChan chan<- string) {
 		case liveness := <-livenessCh:
 			status.TorLiveness = liveness
 		case msg := <-messageCh:
-			status.Message = msg
 			messageTimer.Reset(messageTTL)
+			messageTicker.Stop()
+			messageTicker = time.NewTicker(time.Minute)
+			status.Message = msg
+			status.MessageTimestamp = time.Now()
+		case <-messageTicker.C:
 		case <-messageTimer.C:
 			status.Message = ""
+			messageTicker.Stop()
 		}
 		statusChan <- status.Format()
 	}
