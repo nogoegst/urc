@@ -58,7 +58,8 @@ type batteryLifetime struct {
 }
 
 func batteryCheck(batteryCh chan<- batteryLifetime) {
-	batteryTicker := time.NewTicker(time.Minute)
+	// Fuck polling, but I had to do this crap
+	batteryTicker := time.NewTicker(10*time.Second)
 	for {
 		bs := batteryLifetime{Percent: -1}
 		out, err := exec.Command("apm", "-l", "-m").Output()
@@ -75,7 +76,7 @@ func batteryCheck(batteryCh chan<- batteryLifetime) {
 		}
 		bs.Percent = percent
 		minutes, err := time.ParseDuration(split[1]+"m")
-		if err != nil {
+		if err != nil && split[1] != "unknown" {
 			log.Fatalf("Corrupted apm(8) output")
 		}
 		bs.Time = minutes
