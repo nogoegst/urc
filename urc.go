@@ -11,7 +11,9 @@ import (
 	"log"
 	"fmt"
 	"net"
+	"strconv"
 	"os"
+	"os/exec"
 	"time"
 	"strings"
 
@@ -28,6 +30,7 @@ const maxMsgLength = 64
 type Status struct {
 	Time		time.Time
 	TorLiveness	string
+	Battery		batteryLifetime
 	Message		string
 	MessageTimestamp	time.Time
 }
@@ -40,9 +43,45 @@ func (s *Status) Format() (string) {
 	if fMsg != "" {
 		fMsg += fmt.Sprintf(" %dm", int(time.Since(s.MessageTimestamp).Minutes()))
 	}
+	fBattery := "batt err"
+	if s.Battery.Percent != -1 {
+		fBattery = fmt.Sprintf("%d%% %s", s.Battery.Percent, strings.TrimRight(s.Battery.Time.String(), "0s"))
+	}
 	fTorLiveness := strings.ToLower(s.TorLiveness)
 	fTime := s.Time.Format(timeLayout)
-	return fmt.Sprintf("%s | Λ > 0 | tor is %s | %s ", fMsg, fTorLiveness, fTime)
+	return fmt.Sprintf("%s | Λ > 0 | tor is %s | %s | %s ", fMsg, fTorLiveness, fBattery, fTime)
+}
+
+type batteryLifetime struct {
+	Percent	int
+	Time	time.Duration
+}
+
+func batteryCheck(batteryCh chan<- batteryLifetime) {
+	batteryTicker := time.NewTicker(time.Minute)
+	for {
+		bs := batteryLifetime{Percent: -1}
+		out, err := exec.Command("apm", "-l", "-m").Output()
+		if err != nil {
+			log.Fatal(err)
+		}
+		split := strings.Split(strings.TrimRight(string(out), "\n"), "\n")
+		if len(split) != 2 {
+			log.Fatalf("Corrupted apm(8) output")
+		}
+		percent, err := strconv.Atoi(split[0])
+		if err != nil {
+			log.Fatalf("Corrupted apm(8) output")
+		}
+		bs.Percent = percent
+		minutes, err := time.ParseDuration(split[1]+"m")
+		if err != nil {
+			log.Fatalf("Corrupted apm(8) output")
+		}
+		bs.Time = minutes
+		batteryCh <- bs
+		<-batteryTicker.C
+	}
 }
 
 func messageCheck(messageCh chan<- string) {
@@ -134,12 +173,17 @@ func updateStatus(statusChan chan<- string) {
 	messageTicker := time.NewTicker(time.Minute)
 	messageTicker.Stop()
 
+	batteryCh := make(chan batteryLifetime)
+	go batteryCheck(batteryCh)
+
 	for {
 		select {
 		case time := <-timeCh:
 			status.Time = time
 		case liveness := <-livenessCh:
 			status.TorLiveness = liveness
+		case bs := <-batteryCh:
+			status.Battery = bs
 		case msg := <-messageCh:
 			messageTimer.Reset(messageTTL)
 			messageTicker.Stop()
