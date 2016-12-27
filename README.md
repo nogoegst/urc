@@ -25,3 +25,7 @@ q
 Send messages to `$HOME/urc.sock`. `urc` is at service!
 
 That's it.
+
+Hacking
+-------
+It's easy to change your status line. Go ahead to `status.go` and change formatting, active modules or implement more of them!
