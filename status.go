@@ -31,7 +31,7 @@ func (s *Status) Format() string {
 	if fMsg != "" {
 		fMsg += fmt.Sprintf(" %dm", int(time.Since(s.Message.Timestamp).Minutes()))
 	}
-	fBattery := "batt err"
+	fBattery := "no bat"
 	if s.Battery.Percent != -1 {
 		fBattery = fmt.Sprintf("%d%% %s", s.Battery.Percent, strings.TrimRight(s.Battery.Time.String(), "0s"))
 	}
