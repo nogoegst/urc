@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 )
 
 const timeLayout = "Mon 02.01 15:04:05"
@@ -37,7 +38,15 @@ func (s *Status) Format() string {
 	}
 	fTorLiveness := strings.ToLower(s.TorLiveness)
 	fTime := s.Time.Format(timeLayout)
-	return fmt.Sprintf("%s | Λ > 0 | tor is %s | %s | %s ", fMsg, fTorLiveness, fBattery, fTime)
+	status := fmt.Sprintf(" %s | Λ > 0 | tor is %s | %s | %s ", fMsg, fTorLiveness, fBattery, fTime)
+	return strings.Map(func(r rune) rune {
+		if r == '\n' {
+			return ' '
+		} else if unicode.IsGraphic(r) {
+			return r
+		}
+		return -1
+	}, status)
 }
 
 func updateStatus(statusChan chan<- string) {
