@@ -12,12 +12,13 @@ import (
 	"unicode"
 
 	"github.com/nogoegst/urc/battery"
+	"github.com/nogoegst/urc/clock"
 	"github.com/nogoegst/urc/message"
 )
 
 type Status struct {
-	Clock           Clock
 	TorStatus       TorStatus
+	Clock           clock.Clock
 	BatteryLifetime battery.Lifetime
 	Message         message.Message
 }
@@ -48,12 +49,10 @@ func Compose(statuses ...string) string {
 func updateStatus(statusChan chan<- string) {
 	var status Status
 
-	clockCh := make(chan Clock)
-	go clockCheck(clockCh)
-
 	torstatusCh := make(chan TorStatus)
 	go torstatusCheck(torstatusCh)
 
+	clockCh := clock.WatchClock()
 	messageCh := message.WatchMessages()
 	batteryLifetimeCh := battery.WatchLifetime()
 
