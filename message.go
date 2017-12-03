@@ -8,9 +8,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -44,9 +46,22 @@ func UnixSocketMessageCheck(messageCh chan<- string) {
 	}
 }
 
+const maxMsgLength = 64
+
 type Message struct {
 	Text      string
 	Timestamp time.Time
+}
+
+func (m *Message) Format() string {
+	fm := strings.TrimRight(m.Text, "\n\r")
+	if len(fm) > maxMsgLength {
+		fm = fm[:maxMsgLength] + "[...]"
+	}
+	if fm != "" {
+		fm += fmt.Sprintf(" %dm", int(time.Since(m.Timestamp).Minutes()))
+	}
+	return fm
 }
 
 func messageBufferedCheck(out chan<- Message, mchk func(chan<- string)) {
