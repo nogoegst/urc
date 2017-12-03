@@ -2,29 +2,32 @@
 //
 // To the extent possible under law, Ivan Markin waived all copyright
 // and related or neighboring rights to this module of urc, using the creative
-// commons "cc0" public domain dedication. See LICENSE or
+// commons "CC0" public domain dedication. See LICENSE or
 // <http://creativecommons.org/publicdomain/zero/1.0/> for full details.
 
-package main
+package message
 
 import (
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
 const messageTTL = 30 * time.Minute
+const MaxMessageSize = 255
 
-func UnixSocketMessageCheck(messageCh chan<- string) {
-	sockpath := os.Getenv("HOME") + "/urc.sock"
+func UnixSocketMessageCheck(ch chan<- string) {
+	defer close(ch)
+	sockpath := filepath.Join(os.Getenv("HOME"), "urc.sock")
+	// Remove socket left from dead urc
 	os.Remove(sockpath)
 	l, err := net.Listen("unix", sockpath)
 	if err != nil {
 		log.Printf("Unable to listen on socket: %v", err)
-		close(messageCh)
 		return
 	}
 	defer os.Remove(sockpath)
@@ -35,14 +38,14 @@ func UnixSocketMessageCheck(messageCh chan<- string) {
 			log.Printf("Unable to accept connection: %v", err)
 			continue
 		}
-		buf := make([]byte, 255)
+		buf := make([]byte, MaxMessageSize)
 		n, err := c.Read(buf)
 		if err != nil {
 			log.Printf("Unable to read from connection: %v", err)
 			continue
 		}
 		c.Close()
-		messageCh <- string(buf[:n])
+		ch <- string(buf[:n])
 	}
 }
 
@@ -64,7 +67,7 @@ func (m *Message) Format() string {
 	return fm
 }
 
-func messageBufferedCheck(out chan<- Message, mchk func(chan<- string)) {
+func MessageBufferedCheck(out chan<- Message, mchk func(chan<- string)) {
 	messageCh := make(chan string)
 	go mchk(messageCh)
 	messageTimer := time.NewTimer(time.Duration(0))
@@ -83,4 +86,10 @@ func messageBufferedCheck(out chan<- Message, mchk func(chan<- string)) {
 			out <- Message{}
 		}
 	}
+}
+
+func WatchMessages() <-chan Message {
+	ch := make(chan Message)
+	go MessageBufferedCheck(ch, UnixSocketMessageCheck)
+	return ch
 }

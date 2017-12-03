@@ -12,13 +12,14 @@ import (
 	"unicode"
 
 	"github.com/nogoegst/urc/battery"
+	"github.com/nogoegst/urc/message"
 )
 
 type Status struct {
 	Clock           Clock
 	TorStatus       TorStatus
 	BatteryLifetime battery.Lifetime
-	Message         Message
+	Message         message.Message
 }
 
 func (s *Status) Format() string {
@@ -53,9 +54,7 @@ func updateStatus(statusChan chan<- string) {
 	torstatusCh := make(chan TorStatus)
 	go torstatusCheck(torstatusCh)
 
-	messageCh := make(chan Message)
-	go messageBufferedCheck(messageCh, UnixSocketMessageCheck)
-
+	messageCh := message.WatchMessages()
 	batteryLifetimeCh := battery.WatchLifetime()
 
 	for {
@@ -66,8 +65,8 @@ func updateStatus(statusChan chan<- string) {
 			status.TorStatus = torstatus
 		case v := <-batteryLifetimeCh:
 			status.BatteryLifetime = v
-		case msg := <-messageCh:
-			status.Message = msg
+		case v := <-messageCh:
+			status.Message = v
 		}
 		statusChan <- status.Format()
 	}
