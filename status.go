@@ -24,7 +24,7 @@ type Status struct {
 	Message         message.Message
 }
 
-func (s *Status) Format() string {
+func (s Status) Format() string {
 	msg := s.Message.Format()
 	cosmoStatus := "Λ > 0"
 	torStatus := s.TorStatus.Format()
@@ -37,6 +37,10 @@ func (s *Status) Format() string {
 
 func Compose(statuses ...string) string {
 	status := strings.Join(statuses, " | ")
+	return Sanitize(status)
+}
+
+func Sanitize(s string) string {
 	return strings.Map(func(r rune) rune {
 		if r == '\n' {
 			return ' '
@@ -44,7 +48,7 @@ func Compose(statuses ...string) string {
 			return r
 		}
 		return -1
-	}, status)
+	}, s)
 }
 
 func updateStatus(statusChan chan<- string) {
