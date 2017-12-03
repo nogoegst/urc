@@ -21,7 +21,9 @@ type Lifetime struct {
 func (bs Lifetime) Format() string {
 	fb := "no bat"
 	if bs.Percent != -1 {
-		fb = fmt.Sprintf("%d%% %s", bs.Percent, strings.TrimRight(bs.Time.String(), "0s"))
+		percent := fmt.Sprintf("%d%%", bs.Percent)
+		timeLeft := fmt.Sprintf("%s", strings.TrimRight(bs.Time.String(), "0s"))
+		fb = fmt.Sprintf("%s %s", percent, timeLeft)
 	}
 	return fb
 }
