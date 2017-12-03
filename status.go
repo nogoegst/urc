@@ -36,9 +36,16 @@ func (s *Status) Format() string {
 	if s.Battery.Percent != -1 {
 		fBattery = fmt.Sprintf("%d%% %s", s.Battery.Percent, strings.TrimRight(s.Battery.Time.String(), "0s"))
 	}
-	fTorLiveness := strings.ToLower(s.TorLiveness)
+	fTorLiveness := "tor is " + strings.ToLower(s.TorLiveness)
 	fTime := s.Time.Format(timeLayout)
-	status := fmt.Sprintf(" %s | Λ > 0 | tor is %s | %s | %s ", fMsg, fTorLiveness, fBattery, fTime)
+	cosmoStatus := "Λ > 0"
+
+	status := Compose(fMsg, cosmoStatus, fTorLiveness, fBattery, fTime)
+	return " " + status + " "
+}
+
+func Compose(statuses ...string) string {
+	status := strings.Join(statuses, " | ")
 	return strings.Map(func(r rune) rune {
 		if r == '\n' {
 			return ' '
