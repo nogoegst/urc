@@ -16,20 +16,20 @@ import (
 const timeLayout = "Mon 02.01 15:04:05"
 
 type Status struct {
-	Time        time.Time
-	TorLiveness string
-	Battery     BatteryLifetime
-	Message     Message
+	Time      time.Time
+	TorStatus TorStatus
+	Battery   BatteryLifetime
+	Message   Message
 }
 
 func (s *Status) Format() string {
-	fMsg := s.Message.Format()
-	battery := s.Battery.Format()
-	fTorLiveness := "tor is " + strings.ToLower(s.TorLiveness)
-	fTime := s.Time.Format(timeLayout)
+	msg := s.Message.Format()
 	cosmoStatus := "Λ > 0"
+	torStatus := s.TorStatus.Format()
+	battery := s.Battery.Format()
+	timeStatus := s.Time.Format(timeLayout)
 
-	status := Compose(fMsg, cosmoStatus, fTorLiveness, battery, fTime)
+	status := Compose(msg, cosmoStatus, torStatus, battery, timeStatus)
 	return " " + status + " "
 }
 
@@ -51,8 +51,8 @@ func updateStatus(statusChan chan<- string) {
 	timeCh := make(chan time.Time)
 	go timeCheck(timeCh)
 
-	livenessCh := make(chan string)
-	go livenessCheck(livenessCh)
+	torstatusCh := make(chan TorStatus)
+	go torstatusCheck(torstatusCh)
 
 	messageCh := make(chan Message)
 	go messageBufferedCheck(messageCh, UnixSocketMessageCheck)
@@ -64,8 +64,8 @@ func updateStatus(statusChan chan<- string) {
 		select {
 		case time := <-timeCh:
 			status.Time = time
-		case liveness := <-livenessCh:
-			status.TorLiveness = liveness
+		case torstatus := <-torstatusCh:
+			status.TorStatus = torstatus
 		case bs := <-batteryCh:
 			status.Battery = bs
 		case msg := <-messageCh:

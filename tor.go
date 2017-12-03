@@ -17,39 +17,57 @@ import (
 
 const torReconnectDelay = 5 * time.Second
 
-func livenessCheck(livenessCh chan<- string) {
+type TorStatus struct {
+	Liveness string
+}
+
+func (ts TorStatus) Format() string {
+	return "tor is " + ts.Liveness
+}
+
+func torstatusCheck(torstatusCh chan<- TorStatus) {
+	defer close(torstatusCh)
 	for {
+		ts := TorStatus{}
 		c, err := bulb.DialURL("default://")
 		if err != nil {
 			log.Printf("Failed to connect to control socket: %v", err)
-			livenessCh <- "not running"
+			ts.Liveness = "not running"
+			torstatusCh <- ts
 			time.Sleep(torReconnectDelay)
 			continue
 		}
 		defer c.Close()
 		if err := c.Authenticate("ExamplePassword"); err != nil {
 			log.Printf("Authentication failed: %v", err)
-			close(livenessCh)
 			return
 		}
-		livenessCh <- "running"
+		ts.Liveness = "running"
+		torstatusCh <- ts
 		c.StartAsyncReader()
 		resp, err := c.Request("GETINFO network-liveness")
 		if err != nil {
-			log.Fatalf("GETINFO failed: %v", err)
+			log.Printf("GETINFO failed: %v", err)
+			return
 		}
-		livenessCh <- strings.TrimPrefix(resp.Data[0], "network-liveness=")
+
+		ts.Liveness = strings.TrimPrefix(resp.Data[0], "network-liveness=")
+		torstatusCh <- ts
 		if _, err := c.Request("SETEVENTS NETWORK_LIVENESS"); err != nil {
-			log.Fatalf("SETEVENTS NETWORK_LIVENESS has failed: %v", err)
+			log.Printf("SETEVENTS NETWORK_LIVENESS has failed: %v", err)
+			return
 		}
 		for {
 			ev, err := c.NextEvent()
 			if err != nil {
+				log.Printf("NextEvent error: %v", err)
 				break
 			}
-			livenessCh <- strings.TrimPrefix(ev.Reply, "NETWORK_LIVENESS ")
+			ts.Liveness = strings.TrimPrefix(ev.Reply, "NETWORK_LIVENESS ")
+			torstatusCh <- ts
 		}
-		livenessCh <- "not running"
+		ts.Liveness = "not running"
+		torstatusCh <- ts
 		time.Sleep(torReconnectDelay)
 	}
 }
