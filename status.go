@@ -17,6 +17,21 @@ import (
 	"github.com/nogoegst/urc/torstatus"
 )
 
+func RemoveSidespaces(s string) string {
+	return strings.TrimLeft(strings.TrimRight(s, " "), " ")
+}
+
+func Sanitize(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' {
+			return ' '
+		} else if unicode.IsGraphic(r) {
+			return r
+		}
+		return -1
+	}, s)
+}
+
 type Status struct {
 	TorStatus       torstatus.TorStatus
 	Clock           clock.Clock
@@ -36,22 +51,14 @@ func (s Status) Format() string {
 }
 
 func Compose(statuses ...string) string {
+	for i, status := range statuses {
+		statuses[i] = RemoveSidespaces(status)
+	}
 	status := strings.Join(statuses, " | ")
 	return Sanitize(status)
 }
 
-func Sanitize(s string) string {
-	return strings.Map(func(r rune) rune {
-		if r == '\n' {
-			return ' '
-		} else if unicode.IsGraphic(r) {
-			return r
-		}
-		return -1
-	}, s)
-}
-
-func updateStatus(statusChan chan<- string) {
+func UpdateStatus(statusChan chan<- string) {
 	var status Status
 
 	clockCh := clock.WatchClock()

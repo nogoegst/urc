@@ -28,7 +28,7 @@ func main() {
 
 	defer setStatus(x, "urc died")
 	statusChan := make(chan string)
-	go updateStatus(statusChan)
+	go UpdateStatus(statusChan)
 	for status := range statusChan {
 		setStatus(x, status)
 	}
