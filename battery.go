@@ -8,10 +8,20 @@
 package main
 
 import (
+	"fmt"
+	"strings"
 	"time"
 )
 
-type batteryLifetime struct {
+type BatteryLifetime struct {
 	Percent int
 	Time    time.Duration
+}
+
+func (bs *BatteryLifetime) Format() string {
+	fb := "no bat"
+	if bs.Percent != -1 {
+		fb = fmt.Sprintf("%d%% %s", bs.Percent, strings.TrimRight(bs.Time.String(), "0s"))
+	}
+	return fb
 }

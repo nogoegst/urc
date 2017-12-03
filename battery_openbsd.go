@@ -14,11 +14,11 @@ import (
 	"time"
 )
 
-func batteryCheck(batteryCh chan<- batteryLifetime) {
+func BatteryCheck(batteryCh chan<- BatteryLifetime) {
 	// Fuck polling, but I had to do this crap
 	batteryTicker := time.NewTicker(10 * time.Second)
 	for {
-		bs := batteryLifetime{Percent: -1}
+		bs := BatteryLifetime{Percent: -1}
 		out, err := exec.Command("apm", "-l", "-m").Output()
 		if err != nil {
 			log.Fatal(err)

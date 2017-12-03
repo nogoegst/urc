@@ -9,6 +9,6 @@
 
 package main
 
-func batteryCheck(batteryCh chan<- batteryLifetime) {
-	batteryCh <- batteryLifetime{Percent: -1}
+func BatteryCheck(batteryCh chan<- BatteryLifetime) {
+	batteryCh <- BatteryLifetime{Percent: -1}
 }

@@ -8,7 +8,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 	"time"
 	"unicode"
@@ -19,21 +18,18 @@ const timeLayout = "Mon 02.01 15:04:05"
 type Status struct {
 	Time        time.Time
 	TorLiveness string
-	Battery     batteryLifetime
+	Battery     BatteryLifetime
 	Message     Message
 }
 
 func (s *Status) Format() string {
 	fMsg := s.Message.Format()
-	fBattery := "no bat"
-	if s.Battery.Percent != -1 {
-		fBattery = fmt.Sprintf("%d%% %s", s.Battery.Percent, strings.TrimRight(s.Battery.Time.String(), "0s"))
-	}
+	battery := s.Battery.Format()
 	fTorLiveness := "tor is " + strings.ToLower(s.TorLiveness)
 	fTime := s.Time.Format(timeLayout)
 	cosmoStatus := "Λ > 0"
 
-	status := Compose(fMsg, cosmoStatus, fTorLiveness, fBattery, fTime)
+	status := Compose(fMsg, cosmoStatus, fTorLiveness, battery, fTime)
 	return " " + status + " "
 }
 
@@ -61,8 +57,8 @@ func updateStatus(statusChan chan<- string) {
 	messageCh := make(chan Message)
 	go messageBufferedCheck(messageCh, UnixSocketMessageCheck)
 
-	batteryCh := make(chan batteryLifetime)
-	go batteryCheck(batteryCh)
+	batteryCh := make(chan BatteryLifetime)
+	go BatteryCheck(batteryCh)
 
 	for {
 		select {
