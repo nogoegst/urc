@@ -2,13 +2,13 @@
 //
 // To the extent possible under law, Ivan Markin waived all copyright
 // and related or neighboring rights to this module of urc, using the creative
-// commons "cc0" public domain dedication. See LICENSE or
+// commons "CC0" public domain dedication. See LICENSE or
 // <http://creativecommons.org/publicdomain/zero/1.0/> for full details.
 
 // +build !openbsd
 
 package main
 
-func BatteryCheck(batteryCh chan<- BatteryLifetime) {
-	batteryCh <- BatteryLifetime{Percent: -1}
+func LifetimeCheck(ch chan<- Lifetime) {
+	ch <- Lifetime{Percent: -1}
 }

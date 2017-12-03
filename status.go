@@ -10,23 +10,25 @@ package main
 import (
 	"strings"
 	"unicode"
+
+	"github.com/nogoegst/urc/battery"
 )
 
 type Status struct {
-	Clock     Clock
-	TorStatus TorStatus
-	Battery   BatteryLifetime
-	Message   Message
+	Clock           Clock
+	TorStatus       TorStatus
+	BatteryLifetime battery.Lifetime
+	Message         Message
 }
 
 func (s *Status) Format() string {
 	msg := s.Message.Format()
 	cosmoStatus := "Λ > 0"
 	torStatus := s.TorStatus.Format()
-	battery := s.Battery.Format()
+	batteryLifetime := s.BatteryLifetime.Format()
 	clockStatus := s.Clock.Format()
 
-	status := Compose(msg, cosmoStatus, torStatus, battery, clockStatus)
+	status := Compose(msg, cosmoStatus, torStatus, batteryLifetime, clockStatus)
 	return " " + status + " "
 }
 
@@ -54,8 +56,7 @@ func updateStatus(statusChan chan<- string) {
 	messageCh := make(chan Message)
 	go messageBufferedCheck(messageCh, UnixSocketMessageCheck)
 
-	batteryCh := make(chan BatteryLifetime)
-	go BatteryCheck(batteryCh)
+	batteryLifetimeCh := battery.WatchLifetime()
 
 	for {
 		select {
@@ -63,8 +64,8 @@ func updateStatus(statusChan chan<- string) {
 			status.Clock = clock
 		case torstatus := <-torstatusCh:
 			status.TorStatus = torstatus
-		case bs := <-batteryCh:
-			status.Battery = bs
+		case v := <-batteryLifetimeCh:
+			status.BatteryLifetime = v
 		case msg := <-messageCh:
 			status.Message = msg
 		}

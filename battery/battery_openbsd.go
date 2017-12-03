@@ -2,9 +2,10 @@
 //
 // To the extent possible under law, Ivan Markin waived all copyright
 // and related or neighboring rights to this module of urc, using the creative
-// commons "cc0" public domain dedication. See LICENSE or
+// commons "CC0" public domain dedication. See LICENSE or
 // <http://creativecommons.org/publicdomain/zero/1.0/> for full details.
-package main
+
+package battery
 
 import (
 	"log"
@@ -14,11 +15,10 @@ import (
 	"time"
 )
 
-func BatteryCheck(batteryCh chan<- BatteryLifetime) {
-	// Fuck polling, but I had to do this crap
-	batteryTicker := time.NewTicker(10 * time.Second)
+func LifetimeCheck(ch chan<- Lifetime) {
+	ticker := time.NewTicker(10 * time.Second)
 	for {
-		bs := BatteryLifetime{Percent: -1}
+		bs := Lifetime{Percent: -1}
 		out, err := exec.Command("apm", "-l", "-m").Output()
 		if err != nil {
 			log.Fatal(err)
@@ -37,7 +37,7 @@ func BatteryCheck(batteryCh chan<- BatteryLifetime) {
 			log.Fatalf("Corrupted apm(8) output")
 		}
 		bs.Time = minutes
-		batteryCh <- bs
-		<-batteryTicker.C
+		ch <- bs
+		<-ticker.C
 	}
 }
