@@ -11,11 +11,24 @@ import (
 	"time"
 )
 
-func timeCheck(timeCh chan<- time.Time) {
+const clockLayout = "Mon 02.01 15:04:05"
+
+type Clock struct {
+	Time time.Time
+}
+
+func (c Clock) Format() string {
+	return c.Time.Format(clockLayout)
+}
+
+func clockCheck(clockCh chan<- Clock) {
 	duration := time.Second
 	ticker := time.NewTicker(duration)
 	for {
-		timeCh <- time.Now()
+		clock := Clock{
+			Time: time.Now(),
+		}
+		clockCh <- clock
 		<-ticker.C
 	}
 }

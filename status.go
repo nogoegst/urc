@@ -9,14 +9,11 @@ package main
 
 import (
 	"strings"
-	"time"
 	"unicode"
 )
 
-const timeLayout = "Mon 02.01 15:04:05"
-
 type Status struct {
-	Time      time.Time
+	Clock     Clock
 	TorStatus TorStatus
 	Battery   BatteryLifetime
 	Message   Message
@@ -27,9 +24,9 @@ func (s *Status) Format() string {
 	cosmoStatus := "Λ > 0"
 	torStatus := s.TorStatus.Format()
 	battery := s.Battery.Format()
-	timeStatus := s.Time.Format(timeLayout)
+	clockStatus := s.Clock.Format()
 
-	status := Compose(msg, cosmoStatus, torStatus, battery, timeStatus)
+	status := Compose(msg, cosmoStatus, torStatus, battery, clockStatus)
 	return " " + status + " "
 }
 
@@ -48,8 +45,8 @@ func Compose(statuses ...string) string {
 func updateStatus(statusChan chan<- string) {
 	var status Status
 
-	timeCh := make(chan time.Time)
-	go timeCheck(timeCh)
+	clockCh := make(chan Clock)
+	go clockCheck(clockCh)
 
 	torstatusCh := make(chan TorStatus)
 	go torstatusCheck(torstatusCh)
@@ -62,8 +59,8 @@ func updateStatus(statusChan chan<- string) {
 
 	for {
 		select {
-		case time := <-timeCh:
-			status.Time = time
+		case clock := <-clockCh:
+			status.Clock = clock
 		case torstatus := <-torstatusCh:
 			status.TorStatus = torstatus
 		case bs := <-batteryCh:
