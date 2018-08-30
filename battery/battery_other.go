@@ -7,7 +7,7 @@
 
 // +build !openbsd
 
-package main
+package battery
 
 func LifetimeCheck(ch chan<- Lifetime) {
 	ch <- Lifetime{Percent: -1}
