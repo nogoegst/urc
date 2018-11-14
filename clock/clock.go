@@ -8,17 +8,21 @@
 package clock
 
 import (
+	"fmt"
 	"time"
 )
 
 const clockLayout = "Mon 02.01 15:04:05"
+const utcLayout = "15:04"
 
 type Clock struct {
 	Time time.Time
 }
 
 func (c Clock) Format() string {
-	return c.Time.Format(clockLayout)
+	local := c.Time.Format(clockLayout)
+	utc := c.Time.UTC().Format(utcLayout)
+	return fmt.Sprintf("%s (%s)", local, utc)
 }
 
 func ClockCheck(ch chan<- Clock) {
